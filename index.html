@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Calculadora de Calda Fitofarmacêutica</title>
+<meta name="description" content="Cálculo de dose, volume de calda e número de cargas do pulverizador">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1E2A1A">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1E2A1A;
+    --ink-soft:#374A32;
+    --paper:#F6F7F2;
+    --paper-dim:#ECEEE5;
+    --leaf:#4C7A3C;
+    --leaf-dim:#DCE7D6;
+    --sage:#8FA888;
+    --ochre:#C08B3E;
+    --teal:#2B4C4A;
+    --line: rgba(30,42,26,0.14);
+    --radius: 14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:clamp(16px,4vw,40px);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1040px;margin:0 auto;}
+
+  header.app{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:24px;
+    margin-bottom:28px;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;
+    flex-wrap:wrap;
+  }
+  .brand-mark{
+    display:flex;align-items:center;gap:12px;
+  }
+  .brand-mark svg{flex-shrink:0;}
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:clamp(22px,3.2vw,32px);
+    font-weight:700;
+    letter-spacing:-0.01em;
+    margin:0;
+    line-height:1.1;
+  }
+  .subtitle{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin-top:4px;
+  }
+  .status-chip{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    background:var(--leaf-dim);
+    color:var(--leaf);
+    border:1px solid var(--leaf);
+    padding:6px 12px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: minmax(280px,380px) 1fr;
+    gap:24px;
+    align-items:start;
+  }
+  @media (max-width: 760px){
+    .grid{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px 22px 24px;
+  }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    margin:0 0 18px;
+    color:var(--ink-soft);
+    display:flex;align-items:center;gap:8px;
+  }
+  .panel h2::before{
+    content:"";
+    width:8px;height:8px;
+    background:var(--ochre);
+    display:inline-block;
+    border-radius:2px;
+  }
+
+  .field{margin-bottom:18px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    font-size:13.5px;
+    font-weight:500;
+    margin-bottom:6px;
+  }
+  .field label .code{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--sage);
+    background:var(--paper-dim);
+    padding:2px 6px;
+    border-radius:5px;
+  }
+  .input-row{
+    display:flex;
+    align-items:stretch;
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    overflow:hidden;
+    background:var(--paper);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .input-row:focus-within{
+    border-color:var(--leaf);
+    box-shadow:0 0 0 3px var(--leaf-dim);
+  }
+  .input-row input{
+    flex:1;
+    border:none;
+    background:transparent;
+    padding:11px 12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:16px;
+    color:var(--ink);
+    min-width:0;
+  }
+  .input-row input:focus{outline:none;}
+  .input-row .unit{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    background:var(--paper-dim);
+    padding:0 12px;
+    display:flex;
+    align-items:center;
+    white-space:nowrap;
+    border-left:1px solid var(--line);
+  }
+  .hint{font-size:11.5px;color:var(--ink-soft);margin-top:5px;line-height:1.4;}
+
+  /* Outputs */
+  .outputs-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:14px;
+    margin-bottom:22px;
+  }
+  @media (max-width:520px){.outputs-grid{grid-template-columns:1fr;}}
+
+  .out-card{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:14px 16px;
+  }
+  .out-card .label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    display:flex;justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .out-card .value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:22px;
+    font-weight:600;
+    color:var(--teal);
+    line-height:1.1;
+  }
+  .out-card .value .unit{font-size:13px;font-weight:400;color:var(--ink-soft);margin-left:4px;}
+  .out-card.primary{border-color:var(--leaf);background:var(--leaf-dim);}
+  .out-card.primary .value{color:var(--leaf);}
+
+  /* Tank visualization - signature element */
+  .tanks-section{margin-top:6px;}
+  .tanks-header{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;
+  }
+  .tanks-header .count{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;color:var(--ink-soft);
+  }
+  .tanks-strip{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:flex-end;
+    padding:16px;
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:10px;
+    min-height:120px;
+  }
+  .tank{
+    width:34px;
+    height:88px;
+    position:relative;
+  }
+  .tank svg{width:100%;height:100%;display:block;}
+  .tank .fill{
+    transition: transform 0.5s cubic-bezier(.4,0,.2,1);
+    transform-origin: bottom;
+  }
+  .tank.partial .tank-index{color:var(--ochre);}
+  .tank-index{
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    color:var(--leaf);
+    margin-top:4px;
+  }
+  .empty-note{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--sage);
+    padding:8px 4px;
+  }
+
+  footer.app{
+    margin-top:28px;
+    font-size:11.5px;
+    color:var(--sage);
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="app">
+    <div class="brand-mark">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="36" height="36" rx="8" fill="#1E2A1A"/>
+        <rect x="13" y="11" width="14" height="18" rx="3" stroke="#8FA888" stroke-width="1.6"/>
+        <rect x="14.3" y="19" width="11.4" height="8.6" rx="2" fill="#4C7A3C"/>
+        <path d="M18 29 L22 29 L20 32.5 Z" fill="#C08B3E"/>
+      </svg>
+      <div>
+        <h1>Calculadora de Calda</h1>
+        <div class="subtitle">Produto fitofarmacêutico · Doseamento de campo</div>
+      </div>
+    </div>
+    <span class="status-chip" id="statusChip">Pronto</span>
+  </header>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <section class="panel" aria-labelledby="inputs-heading">
+      <h2 id="inputs-heading">Dados de entrada</h2>
+
+      <div class="field">
+        <label for="dose"><span>Dose</span><span class="code">D</span></label>
+        <div class="input-row">
+          <input type="number" id="dose" inputmode="decimal" step="any" min="0" placeholder="0" value="2">
+          <span class="unit">L / ha</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="area"><span>Área</span><span class="code">A</span></label>
+        <div class="input-row">
+          <input type="number" id="area" inputmode="decimal" step="any" min="0" placeholder="0" value="15000">
+          <span class="unit">m²</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="vce"><span>Volume de calda específico</span><span class="code">VCE</span></label>
+        <div class="input-row">
+          <input type="number" id="vce" inputmode="decimal" step="any" min="0" placeholder="0" value="60">
+          <span class="unit">L / 100 m²</span>
+        </div>
+        <div class="hint">Litros de água por cada 100 m² a tratar.</div>
+      </div>
+
+      <div class="field">
+        <label for="vp"><span>Volume do pulverizador</span><span class="code">VP</span></label>
+        <div class="input-row">
+          <input type="number" id="vp" inputmode="decimal" step="any" min="0" placeholder="0" value="600">
+          <span class="unit">L</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- OUTPUTS -->
+    <section class="panel" aria-labelledby="outputs-heading">
+      <h2 id="outputs-heading">Dados de saída</h2>
+
+      <div class="outputs-grid">
+        <div class="out-card primary">
+          <div class="label"><span>Quantidade de produto</span><span class="code">QPF</span></div>
+          <div class="value" id="out-qpf">0<span class="unit">L</span></div>
+        </div>
+        <div class="out-card">
+          <div class="label"><span>Volume de calda</span><span class="code">VC</span></div>
+          <div class="value" id="out-vc">0<span class="unit">L</span></div>
+        </div>
+        <div class="out-card">
+          <div class="label"><span>Produto por pulverizador</span><span class="code">QPFP</span></div>
+          <div class="value" id="out-qpfp">0<span class="unit">L</span></div>
+        </div>
+        <div class="out-card">
+          <div class="label"><span>Nº de pulverizadores</span><span class="code">NP</span></div>
+          <div class="value" id="out-np">0<span class="unit">cargas</span></div>
+        </div>
+      </div>
+
+      <div class="tanks-section">
+        <div class="tanks-header">
+          <h2 style="margin:0;" id="tanks-heading">Cargas do pulverizador</h2>
+          <span class="count" id="tanksCount">—</span>
+        </div>
+        <div class="tanks-strip" id="tanksStrip" aria-labelledby="tanks-heading">
+          <span class="empty-note">Preencha os dados de entrada para visualizar as cargas.</span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="app">
+    VC = VCE/100 × A &nbsp;·&nbsp; QPF = D/10000 × A &nbsp;·&nbsp; QPFP = QPF × VP / VC &nbsp;·&nbsp; NP = VC ÷ VP (inteiro + resto)
+  </footer>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const inputs = ['dose','area','vce','vp'].map($);
+
+function fmt(n, decimals=2){
+  if(!isFinite(n)) return '0';
+  return n.toLocaleString('pt-PT', {minimumFractionDigits:0, maximumFractionDigits:decimals});
+}
+
+function tankSVG(fillRatio, isPartial){
+  const clamped = Math.max(0, Math.min(1, fillRatio));
+  const heightPct = (clamped*100).toFixed(1);
+  const fillColor = isPartial ? '#C08B3E' : '#4C7A3C';
+  return `
+  <svg viewBox="0 0 34 88" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <clipPath id="clip-${Math.random().toString(36).slice(2)}">
+      </clipPath>
+    </defs>
+    <rect x="1" y="1" width="32" height="72" rx="4" fill="#fff" stroke="#8FA888" stroke-width="1.4"/>
+    <g>
+      <rect x="2.5" y="${74 - (70*clamped)}" width="29" height="${70*clamped}" rx="2.5" fill="${fillColor}" opacity="0.9"/>
+    </g>
+    <path d="M12 74 L22 74 L17 84 Z" fill="#2B4C4A" opacity="0.85"/>
+  </svg>`;
+}
+
+function render(){
+  const D = parseFloat($('dose').value) || 0;
+  const A = parseFloat($('area').value) || 0;
+  const VCE = parseFloat($('vce').value) || 0;
+  const VP = parseFloat($('vp').value) || 0;
+
+  const VC = (VCE/100) * A;             // Volume de calda (L)
+  const QPF = (D/10000) * A;            // Quantidade de produto (L)
+  const QPFP = VC > 0 ? (QPF * VP) / VC : 0; // Produto por pulverizador cheio (L)
+  const NP_full = VP > 0 ? Math.floor(VC / VP) : 0;
+  const remainder = VP > 0 ? VC - (NP_full*VP) : 0; // resto do volume de calda (L)
+  const remainderProduct = VC > 0 ? (remainder/VC)*QPF : 0;
+  const hasPartial = remainder > 0.0001 && VP > 0;
+  const totalLoads = NP_full + (hasPartial ? 1 : 0);
+
+  $('out-vc').innerHTML = `${fmt(VC)}<span class="unit">L</span>`;
+  $('out-qpf').innerHTML = `${fmt(QPF)}<span class="unit">L</span>`;
+  $('out-qpfp').innerHTML = `${fmt(QPFP)}<span class="unit">L</span>`;
+  $('out-np').innerHTML = `${fmt(NP_full,0)}<span class="unit">${hasPartial ? '+ 1 parcial' : 'cargas'}</span>`;
+
+  // Tank visualization
+  const strip = $('tanksStrip');
+  strip.innerHTML = '';
+  if(VP <= 0 || VC <= 0){
+    strip.innerHTML = '<span class="empty-note">Preencha os dados de entrada para visualizar as cargas.</span>';
+    $('tanksCount').textContent = '—';
+  } else {
+    const maxTanksToDraw = 40;
+    const drawFull = Math.min(NP_full, maxTanksToDraw);
+    for(let i=0;i<drawFull;i++){
+      const t = document.createElement('div');
+      t.className = 'tank';
+      t.innerHTML = tankSVG(1,false) + `<div class="tank-index">${i+1}</div>`;
+      strip.appendChild(t);
+    }
+    if(hasPartial && drawFull < maxTanksToDraw){
+      const ratio = remainder/VP;
+      const t = document.createElement('div');
+      t.className = 'tank partial';
+      t.innerHTML = tankSVG(ratio,true) + `<div class="tank-index">${drawFull+1}·parcial</div>`;
+      strip.appendChild(t);
+    }
+    if(NP_full > maxTanksToDraw){
+      const note = document.createElement('span');
+      note.className = 'empty-note';
+      note.textContent = `+ ${NP_full - maxTanksToDraw} cargas cheias adicionais`;
+      strip.appendChild(note);
+    }
+    $('tanksCount').innerHTML = hasPartial
+      ? `${NP_full} cheias · última com ${fmt(remainder)} L (${fmt(remainderProduct)} L produto)`
+      : `${NP_full} cargas cheias, sem resto`;
+  }
+
+  $('statusChip').textContent = (D>0 && A>0 && VCE>0 && VP>0) ? 'Calculado' : 'Pronto';
+}
+
+inputs.forEach(el => el.addEventListener('input', render));
+render();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
